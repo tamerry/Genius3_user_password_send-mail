@@ -1,0 +1,85 @@
+USE [Genius3];
+GO
+
+/****** Object:  Trigger [GENIUS3].[STORE_USER_INSERT]    Script Date: 7.06.2021 14:23:25 ******/
+SET ANSI_NULLS ON;
+GO
+
+SET QUOTED_IDENTIFIER ON;
+GO
+CREATE TRIGGER [GENIUS3].[STORE_USER_INSERT] --// TRIGGER'A İSİM VERİYORUZ
+ON [GENIUS3].[STORE_USER] --// İŞLEM YAPILACAK TABLOYU BELİRLİYORUZ
+AFTER INSERT --// İŞLEM TÜRÜNÜ BELİRLİYORUZ
+AS
+DECLARE @sonuc NVARCHAR(MAX);
+DECLARE @tarih DATETIME;
+DECLARE @PERSONNAME NVARCHAR(50);
+DECLARE @PASSWORD NVARCHAR(25);
+DECLARE @FKUSER INT;
+DECLARE @EMAIL NVARCHAR(MAX);
+DECLARE @MAGAZA NVARCHAR(50);
+DECLARE @FKSTORE INT;
+DECLARE @KOD INT;
+SET @FKUSER =
+(
+    SELECT FK_USER FROM Inserted
+);
+SET @EMAIL =
+(
+    SELECT EMAIL FROM GENIUS3.USERS WHERE ID = @FKUSER
+);
+SET @PERSONNAME =
+(
+    SELECT NAME FROM GENIUS3.USERS WHERE ID = @FKUSER
+);
+SET @PASSWORD =
+(
+    SELECT PASSWORD FROM GENIUS3.USERS WHERE ID = @FKUSER
+);
+SET @FKSTORE =
+(
+    SELECT FK_STORE FROM Inserted
+);
+SET @MAGAZA =
+(
+    SELECT DESCRIPTION FROM GENIUS3.STORE WHERE ID = @FKSTORE
+);
+SET @KOD =
+(
+    SELECT CODE FROM GENIUS3.USERS WHERE ID = @FKUSER
+);
+
+
+
+SET @tarih = GETDATE();
+SET @sonuc
+    = ('<html><body><p><font size="2" face="Tahoma">' + 'Sayın <b>' + @PERSONNAME + '</b> ,<br /><br />'
+       + 'Yazar kasa kullanıcı kod ve şifreniz aşağıdaki  bilgilerle ' + @MAGAZA + ' mağazasına tanımlanmıştır </p>'
+       + '<br />' + '<b>Kullanıcı adınız: ' + @PERSONNAME + '</b><br />' + '<b>Kullanıcı Kodunuz: '
+       + CONVERT(VARCHAR(15), @KOD, 8) + '</b><br/>' + '<b>Parolanız: ' + @PASSWORD + '</b><br/>' + '<b>Mağazanız: '
+       + @MAGAZA + '</b><br/><p>Bilginize sunar iyi çalışmalar dileriz.<br/>' + 'İşlemin Yapıldığı zaman : '
+       + CONVERT(VARCHAR(15), @tarih, 103) + ' ' + CONVERT(VARCHAR(15), @tarih, 8) + '<br/><br/>'
+       + '<b><font size="2" face="Tahoma">Önemli Notlar:</font></b>' + '<ul>'
+       + ' <li><a href="#">bilgi 1</a></li>'
+       + 
+       + '  </ul>'
+       + 'Bu e-posta mesajı ve ekleri sadece gönderildiği kişi veya kuruma özeldir. Doğru alıcıya ulaşmamış olması halinde, bu mesajın başka bir alıcıya yönlendirilmesi, kopyalanması veya kullanılması yasaktır.<br />
+<hr>
+This e-mail and any attachments transmitted with it are confidential and intended solely for the use of the individual or entity to whom they are addressed.<br />
+If you are not the intended recipient you are hereby notified that any forwarding, copying or use of the information is prohibited.<br />
+<hr>
+<font size="2" face="Tahoma" >Şirket Adı' + CONVERT(VARCHAR(4), DATEPART(YEAR, @tarih))
+       + '</font></font></body></html>'
+      );
+EXEC msdb.dbo.sp_send_dbmail @profile_name = 'mail profili',
+                             @recipients = @EMAIL,
+                             @body = @sonuc,
+                             @subject = 'Yazar Kasa kullanıcı kod ve şifreniz.',
+                             @body_format = 'HTML';
+
+GO
+
+ALTER TABLE [GENIUS3].[STORE_USER] ENABLE TRIGGER [STORE_USER_INSERT];
+GO
+
+
